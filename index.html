@@ -165,15 +165,15 @@ function toggleMute(){muted=!muted;muteBtn.textContent=muted?'🔇':'🔊';
 muteBtn.onclick=(e)=>{e.stopPropagation();toggleMute();};
 
 /* sprite + background slots (blank) */
-const IMG_SRC={bg:'background.png',char1:'char1.png',char2:'char2.png',char3:'char3.png',
-  enemy1:'enemy1.png',enemy2:'enemy2.png',enemy3:'enemy3.png',enemy4:'enemy4.png',
-  enemy5:'enemy5.png',enemy6:'enemy6.png',enemy7:'enemy7.png',boss:'boss.png'};
+const IMG_SRC={bg:'b1.png',char1:'player1.png',char2:'player2.png',char3:'player3.png',
+  enemy1:'enemy1.png',enemy2:'enemy2.png',enemy3: 'player3.png',enemy4:'player2.png',
+  enemy5:'player1.png',enemy6:'enemy1.png',enemy7:'enemy2.png',boss:'player3.png'};
 const IMG={}, IMGok={};
 for(const k in IMG_SRC){const im=new Image();IMGok[k]=false;
   im.onload=(kk=>()=>IMGok[kk]=true)(k);im.onerror=(kk=>()=>IMGok[kk]=false)(k);im.src=IMG_SRC[k];IMG[k]=im;}
 
 /* ★ DIALOGUES ★ */
-const DIALOGUES=["Line 1 goes here","Line 2 goes here","Line 3 goes here","Line 4 goes here","Line 5 goes here"];
+const DIALOGUES=["Peechay Toh Dekho","Pawri Ho Rahi Hai","Dil Ro Raha Hai Mera","Is Do Takkay Ki Larki Ke Liye...","Bag phenku kya? boom 💥",];
 let dialogue=null, dialogueTimer=0, nextDialogue=180;
 
 /* persistent high score + achievements */
