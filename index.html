@@ -104,7 +104,7 @@
 <div id="rotate"><div class="ph"></div><h2>Rotate your phone</h2><p>NEON ARENA plays best in landscape.</p></div>
 
 <div id="overlay">
-  <h1>NEON <span>ARENA</span></h1>
+  <h1 id="gameTitle">NEON <span>ARENA</span></h1>
   <p class="big">v8.0 — XP &amp; upgrades · sound · hazards · endless · achievements</p>
   <p>Drop <b>background.png</b> for arena art. Kill enemies to gain <b>XP</b> — level up mid-run to pick an upgrade.
      Clear all 20 levels to unlock <b>Endless mode</b>.</p>
@@ -115,6 +115,16 @@
 </div>
 
 <script>
+/* =========================================================
+   ★ YOUR GAME NAME — type whatever you want here ★
+   This sets the big title on the start screen and the browser tab.
+   ========================================================= */
+const GAME_NAME = "NEON ARENA";
+document.title = GAME_NAME;
+// paint the title on the start screen (last word gets the accent colour)
+(function(){const t=document.getElementById('gameTitle');if(t){const w=GAME_NAME.trim().split(' ');
+  if(w.length>1){const last=w.pop();t.innerHTML=w.join(' ')+' <span>'+last+'</span>';}else t.innerHTML='<span>'+GAME_NAME+'</span>';}})();
+
 const cv=document.getElementById('c'), ctx=cv.getContext('2d');
 const hud=document.getElementById('hud');
 const scoreEl=document.querySelector('#score b'), waveEl=document.getElementById('waveB');
@@ -165,15 +175,15 @@ function toggleMute(){muted=!muted;muteBtn.textContent=muted?'🔇':'🔊';
 muteBtn.onclick=(e)=>{e.stopPropagation();toggleMute();};
 
 /* sprite + background slots (blank) */
-const IMG_SRC={bg:'b1.png',char1:'player1.png',char2:'player2.png',char3:'player3.png',
-  enemy1:'enemy1.png',enemy2:'enemy2.png',enemy3: 'player3.png',enemy4:'player2.png',
-  enemy5:'player1.png',enemy6:'enemy1.png',enemy7:'enemy2.png',boss:'player3.png'};
+const IMG_SRC={bg:'background.png',char1:'char1.png',char2:'char2.png',char3:'char3.png',
+  enemy1:'enemy1.png',enemy2:'enemy2.png',enemy3:'enemy3.png',enemy4:'enemy4.png',
+  enemy5:'enemy5.png',enemy6:'enemy6.png',enemy7:'enemy7.png',boss:'boss.png'};
 const IMG={}, IMGok={};
 for(const k in IMG_SRC){const im=new Image();IMGok[k]=false;
   im.onload=(kk=>()=>IMGok[kk]=true)(k);im.onerror=(kk=>()=>IMGok[kk]=false)(k);im.src=IMG_SRC[k];IMG[k]=im;}
 
 /* ★ DIALOGUES ★ */
-const DIALOGUES=["Peechay Toh Dekho","Pawri Ho Rahi Hai","Dil Ro Raha Hai Mera","Is Do Takkay Ki Larki Ke Liye...","Bag phenku kya? boom 💥",];
+const DIALOGUES=["Line 1 goes here","Line 2 goes here","Line 3 goes here","Line 4 goes here","Line 5 goes here"];
 let dialogue=null, dialogueTimer=0, nextDialogue=180;
 
 /* persistent high score + achievements */
@@ -245,6 +255,20 @@ let score,coins,level,gun,ammo,reserve,reloading,reloadT,spawnTimer,enemiesLeft;
 let running=false,gameTime=0,lastShot=0,shake=0,rapid=0,flashV=0,energy=0,maxEnergy=100,hitStop=0;
 let dmgMul=1,reloadSpeed=1,combo=0,comboTimer=0,shield=0,triple=0,bombs=1,maxHpBonus=0,meleeCd=0;
 let plevel=1,xp=0,xpNext=8,lifesteal=0,speedBonus=0,pickupRange=0,endless=false;
+/* ---- Customizable HUD: player can toggle each element in Settings ---- */
+let hudCfg={score:true,coins:true,plevel:true,weapon:true,ammo:true,bars:true,powerups:true,combo:true,dialogue:true};
+try{const s=JSON.parse(localStorage.getItem('neonArenaHud')||'null');if(s)hudCfg=Object.assign(hudCfg,s);}catch(e){}
+function saveHud(){try{localStorage.setItem('neonArenaHud',JSON.stringify(hudCfg));}catch(e){}}
+let lastChips='';
+function applyHudCfg(){ // show/hide HUD DOM per config
+  document.getElementById('score').style.display=hudCfg.score?'':'none';
+  document.getElementById('coins').style.display=hudCfg.coins?'':'none';
+  document.getElementById('plv').style.display=hudCfg.plevel?'':'none';
+  gunBox.style.display=hudCfg.weapon?'':'none';
+  document.getElementById('ammo').style.display=hudCfg.ammo?'':'none';
+  bars.style.display=hudCfg.bars?'':'none';
+  puEl.style.display=hudCfg.powerups?'':'none';
+}
 const BASE_LEVELS=20;
 const mouse={x:0,y:0,down:false};
 const moveStick={active:false,id:null,cx:0,cy:0,dx:0,dy:0};
@@ -269,7 +293,7 @@ function reset(){
 function equip(g){gun=g;const w=WEAPONS[g];ammo=w.mag;reserve=w.ammo;reloading=false;reloadT=0;gunEl.textContent=w.name;updateHUD();}
 function isBossLevel(){return level%5===0 && (!endless||level<=BASE_LEVELS);}
 function startLevel(){level++;theme=THEMES[(level-1)%THEMES.length];
-  const boss=isBossLevel();enemiesLeft=boss?1+Math.floor(level/4):6+level*3;spawnTimer=0;waveEl.textContent=endless?('∞'+ (level-BASE_LEVELS)):level;
+  const boss=isBossLevel();enemiesLeft=boss?2+Math.floor(level/3):10+level*4;spawnTimer=0;waveEl.textContent=endless?('∞'+ (level-BASE_LEVELS)):level;
   // spawn hazards + crates for variety
   hazards=[];const hn=Math.min(3,Math.floor(level/4));
   for(let i=0;i<hn;i++)hazards.push({x:60+Math.random()*(W-120),y:60+Math.random()*(H-120),r:34+Math.random()*20});
@@ -284,18 +308,22 @@ function updateHUD(){scoreEl.textContent=score;coinsEl.textContent=coins;plvEl.t
   ammoBox.classList.toggle('low',!reloading&&ammo<=Math.ceil(w.mag*0.2));
   hpfill.style.width=Math.max(0,player.hp/player.maxhp*100)+'%';dashfill.style.width=player.dash+'%';
   enfill.style.width=(energy/maxEnergy*100)+'%';xpfill.style.width=(xp/xpNext*100)+'%';
-  let chips='';const ab=ABILITIES[abilityIdx];
-  chips+='<div class="pu" style="color:#ffd34d">'+ab.ico+' '+ab.name+(abilityCd>0?' ('+Math.ceil(abilityCd/60)+'s)':(energy>=ab.cost?' ✓':''))+'</div>';
-  if(shield>0)chips+='<div class="pu" style="color:#3fe0d0">🛡 SHIELD</div>';
-  if(triple>0)chips+='<div class="pu" style="color:#a06bff">⋔ TRIPLE</div>';
-  if(rapid>0)chips+='<div class="pu" style="color:#ffe08a">⚡ RAPID</div>';
-  if(slowField>0)chips+='<div class="pu" style="color:#8fd4ff">⏳ SLOW</div>';
-  if(turret)chips+='<div class="pu" style="color:#9dff5b">🛡 TURRET</div>';
-  chips+='<div class="pu" style="color:#ff5bb0">💣 BOMB ×'+bombs+'</div>';
-  puEl.innerHTML=chips;}
+  if(hudCfg.powerups){
+    let chips='';const ab=ABILITIES[abilityIdx];
+    const ready=abilityCd<=0&&energy>=ab.cost;
+    chips+='<div class="pu" style="color:#ffd34d;opacity:'+(ready?1:0.5)+'">'+ab.ico+' '+ab.name+(ready?' ✓':'')+'</div>';
+    if(shield>0)chips+='<div class="pu" style="color:#3fe0d0">🛡 SHIELD</div>';
+    if(triple>0)chips+='<div class="pu" style="color:#a06bff">⋔ TRIPLE</div>';
+    if(rapid>0)chips+='<div class="pu" style="color:#ffe08a">⚡ RAPID</div>';
+    if(slowField>0)chips+='<div class="pu" style="color:#8fd4ff">⏳ SLOW</div>';
+    if(turret)chips+='<div class="pu" style="color:#9dff5b">🛡 TURRET</div>';
+    chips+='<div class="pu" style="color:#ff5bb0">💣 BOMB ×'+bombs+'</div>';
+    if(chips!==lastChips){puEl.innerHTML=chips;lastChips=chips;} // only repaint when it actually changes
+  } else if(lastChips!==''){puEl.innerHTML='';lastChips='';}
+}
 function showToast(t,c){toast.textContent=t;toast.style.color=c||'#eef3f8';toast.style.opacity=1;
   clearTimeout(toast._t);toast._t=setTimeout(()=>toast.style.opacity=0,900);}
-function addCombo(){combo++;comboTimer=120;if(combo>maxCombo)maxCombo=combo;if(combo>=2){comboEl.textContent='COMBO ×'+combo;comboEl.style.opacity=1;}}
+function addCombo(){combo++;comboTimer=120;if(combo>maxCombo)maxCombo=combo;if(combo>=2&&hudCfg.combo){comboEl.textContent='COMBO ×'+combo;comboEl.style.opacity=1;}}
 function comboMul(){return 1+Math.max(0,combo-1)*0.15;}
 
 /* input */
@@ -305,7 +333,7 @@ addEventListener('keydown',e=>{const k=e.key.toLowerCase();keys[k]=true;audioIni
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
 function cycleGun(){const list=GUN_ORDER.filter(g=>owned[g]);const i=list.indexOf(gun);
   const n=list[(i+1)%list.length];if(n&&n!==gun){equip(n);showToast('▲ '+WEAPONS[n].name,WEAPONS[n].c);}}
-function cycleAbility(){abilityIdx=(abilityIdx+1)%ABILITIES.length;showToast(ABILITIES[abilityIdx].ico+' '+ABILITIES[abilityIdx].name,'#ffd34d');updateHUD();}
+function cycleAbility(){abilityIdx=(abilityIdx+1)%ABILITIES.length;updateHUD();}
 
 function mpos(e){const r=cv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
 cv.addEventListener('mousedown',e=>{audioInit();mouse.down=true;Object.assign(mouse,mpos(e));});
@@ -534,14 +562,16 @@ function update(){
 
   // XP orbs magnetize to player
   const magR=90+pickupRange;
-  for(let i=orbs.length-1;i>=0;i--){const o=orbs[i];const dx=player.x-o.x,dy=player.y-o.y,d=Math.hypot(dx,dy);
-    if(d<magR){o.vx+=dx/d*0.8;o.vy+=dy/d*0.8;}o.vx*=0.9;o.vy*=0.9;o.x+=o.vx;o.y+=o.vy;
+  if(orbs.length>150)orbs.splice(0,orbs.length-150); // cap orbs
+  for(let i=orbs.length-1;i>=0;i--){const o=orbs[i];const dx=player.x-o.x,dy=player.y-o.y,d=Math.hypot(dx,dy)||1;
+    const pull=d<magR?0.8:0.25; o.vx+=dx/d*pull;o.vy+=dy/d*pull; o.vx*=0.9;o.vy*=0.9;o.x+=o.vx;o.y+=o.vy;
     if(d<player.r+6){orbs.splice(i,1);}}
 
   const pr=player.r+16+pickupRange*0.3;
   for(let i=drops.length-1;i>=0;i--){const d=drops[i];d.life--;d.bob+=0.08;if(d.life<=0){drops.splice(i,1);continue;}
     if((d.x-player.x)**2+(d.y-player.y)**2<pr*pr){pickup(d);drops.splice(i,1);}}
 
+  if(particles.length>400)particles.splice(0,particles.length-400); // cap for mobile performance
   for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vx*=0.92;p.vy*=0.92;p.life--;if(p.life<=0)particles.splice(i,1);}
   for(let i=floaters.length-1;i>=0;i--){const f=floaters[i];f.y-=0.8;f.life--;if(f.life<=0)floaters.splice(i,1);}
   if(player.flash>0)player.flash--;
@@ -655,7 +685,7 @@ function draw(){
 
   floaters.forEach(f=>{ctx.globalAlpha=Math.max(0,f.life/40);ctx.fillStyle=f.c;ctx.font='bold 14px system-ui';ctx.textAlign='center';ctx.fillText(f.txt,f.x,f.y);ctx.textAlign='start';});ctx.globalAlpha=1;
 
-  if(dialogue){const fade=Math.min(1,dialogueTimer/25)*Math.min(1,(150-dialogueTimer)/8+0.3);
+  if(dialogue&&hudCfg.dialogue){const fade=Math.min(1,dialogueTimer/25)*Math.min(1,(150-dialogueTimer)/8+0.3);
     ctx.globalAlpha=Math.max(0,Math.min(1,fade));ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
     const pad=10,tw=ctx.measureText(dialogue).width,bw=tw+pad*2,bh=26;let bx=player.x,by=player.y-player.r-30;
     bx=Math.max(bw/2+6,Math.min(W-bw/2-6,bx));by=Math.max(bh/2+6,by);
@@ -684,12 +714,37 @@ function showCharacterSelect(){refreshHiLabel();renderAchRow();
     <p class="big">${hiScore>0?'<span class="hi">HIGH SCORE: '+hiScore+'</span>':'Drop your art in char1/2/3.png &amp; background.png.'}</p>
     <div class="cards">${CHARACTERS.map((c,i)=>`<div class="card" data-i="${i}"><div class="ico">${c.ico}</div><h3>${c.name}</h3>
       <p class="tag">${c.blurb}</p><p>HP ${c.hp} · SPD ${c.speed} · RATE ${c.fireMul<1?'fast':c.fireMul>1?'slow':'normal'}</p></div>`).join('')}</div>
-    <div class="ach">${ACHS.map(a=>`<div class="badge ${achieved[a.id]?'on':''}">${achieved[a.id]?'🏆':'🔒'} ${a.name}</div>`).join('')}</div>`;
+    <div class="ach">${ACHS.map(a=>`<div class="badge ${achieved[a.id]?'on':''}">${achieved[a.id]?'🏆':'🔒'} ${a.name}</div>`).join('')}</div>
+    <button id="setBtn" class="ghost">⚙ SETTINGS</button>`;
   overlay.classList.remove('hidden');
+  document.getElementById('setBtn').onclick=showSettings;
   overlay.querySelectorAll('.card').forEach(el=>el.onclick=()=>{chosenChar=CHARACTERS[+el.dataset.i];start();});}
+
+function showSettings(){
+  const rows=[
+    ['score','Score'],['coins','Coins'],['plevel','Char Level'],['weapon','Weapon name'],
+    ['ammo','Ammo'],['bars','HP / Dash / Energy / XP bars'],['powerups','Power-up chips'],
+    ['combo','Combo popup'],['dialogue','Dialogue bubbles']
+  ];
+  overlay.innerHTML=`<h1>⚙ <span>SETTINGS</span></h1>
+    <p class="big">Customize your HUD — toggle what you see on screen</p>
+    <div class="cards" style="max-width:640px">
+      ${rows.map(([k,label])=>`<div class="card hudtog" data-k="${k}" style="width:180px;${hudCfg[k]?'':'opacity:.5'}">
+        <div class="ico">${hudCfg[k]?'✅':'⬜'}</div><h3 style="font-size:14px">${label}</h3>
+        <p class="tag">${hudCfg[k]?'Shown':'Hidden'}</p></div>`).join('')}
+    </div>
+    <div class="card hudtog" data-k="__mute" style="width:180px;${muted?'opacity:.5':''}">
+      <div class="ico">${muted?'🔇':'🔊'}</div><h3 style="font-size:14px">Sound</h3><p class="tag">${muted?'Muted':'On'}</p></div>
+    <button id="backBtn">◀ BACK</button>`;
+  overlay.classList.remove('hidden');
+  overlay.querySelectorAll('.hudtog').forEach(el=>el.onclick=()=>{const k=el.dataset.k;
+    if(k==='__mute'){toggleMute();}else{hudCfg[k]=!hudCfg[k];saveHud();}showSettings();});
+  document.getElementById('backBtn').onclick=showCharacterSelect;
+}
 
 function start(){audioInit();reset();running=true;overlay.classList.add('hidden');muteBtn.style.display='block';
   hud.classList.remove('hidden');bars.classList.remove('hidden');gunBox.classList.remove('hidden');puEl.classList.remove('hidden');
+  applyHudCfg();lastChips='';
   if(!isTouch)hint.classList.remove('hidden');goFullscreen();loop();}
 
 const SHOP=[
